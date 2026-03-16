@@ -119,6 +119,10 @@ ignoredBuiltDependencies:
   - '@prisma/client'
   - better-sqlite3
   - simple-git-hooks # [workaround] postinstall script bundled in simple-git-hooks fails to execute with `enableGlobalVirtualStore: true`. Using local postinstall script to run `npx simple-git-hooks` instead.
+  - canvas
+  - electron
+  - electron-click-drag-plugin
+  - electron-winstaller
 
 onlyBuiltDependencies:
   - '@discordjs/opus'
@@ -127,11 +131,7 @@ onlyBuiltDependencies:
   - '@napi-rs/image'
   - '@parcel/watcher'
   - bufferutil
-  - canvas
   - core-js
-  - electron
-  - electron-click-drag-plugin
-  - electron-winstaller
   - es5-ext
   - esbuild
   - ffmpeg-static

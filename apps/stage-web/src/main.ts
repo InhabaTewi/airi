@@ -26,6 +26,57 @@ import 'vue-sonner/style.css'
 import './styles/main.css'
 import 'uno.css'
 
+/**
+ * Seed default chat provider/model configuration from env vars on first load.
+ * Only writes if the localStorage keys are not already set.
+ */
+function seedDefaultChatConfiguration() {
+  const provider = import.meta.env.VITE_DEFAULT_CHAT_PROVIDER
+  const model = import.meta.env.VITE_DEFAULT_CHAT_MODEL
+  const apiKey = import.meta.env.VITE_DEFAULT_CHAT_API_KEY
+  const baseUrl = import.meta.env.VITE_DEFAULT_CHAT_BASE_URL
+
+  if (!provider || !model)
+    return
+
+  // Fix previously double-quoted string values (migration from JSON.stringify bug)
+  for (const key of ['settings/consciousness/active-provider', 'settings/consciousness/active-model']) {
+    const val = localStorage.getItem(key)
+    if (val && val.startsWith('"') && val.endsWith('"'))
+      localStorage.setItem(key, val.slice(1, -1))
+  }
+
+  // Seed active provider & model (VueUse string serializer stores raw strings, no JSON.stringify)
+  if (!localStorage.getItem('settings/consciousness/active-provider'))
+    localStorage.setItem('settings/consciousness/active-provider', provider)
+  if (!localStorage.getItem('settings/consciousness/active-model'))
+    localStorage.setItem('settings/consciousness/active-model', model)
+
+  // Seed provider credentials
+  if (!localStorage.getItem('settings/credentials/providers')) {
+    const credentials: Record<string, Record<string, string>> = {}
+    credentials[provider] = {}
+    if (apiKey)
+      credentials[provider].apiKey = apiKey
+    if (baseUrl)
+      credentials[provider].baseUrl = baseUrl
+    localStorage.setItem('settings/credentials/providers', JSON.stringify(credentials))
+  }
+
+  // Seed provider added state
+  if (!localStorage.getItem('settings/providers/added')) {
+    const added: Record<string, boolean> = {}
+    added[provider] = true
+    localStorage.setItem('settings/providers/added', JSON.stringify(added))
+  }
+
+  // Mark onboarding as completed
+  if (!localStorage.getItem('onboarding/completed'))
+    localStorage.setItem('onboarding/completed', JSON.stringify(true))
+}
+
+seedDefaultChatConfiguration()
+
 const pinia = createPinia()
 
 // TODO: vite-plugin-vue-layouts is long deprecated, replace with another layout solution
