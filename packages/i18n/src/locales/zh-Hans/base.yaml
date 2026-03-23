@@ -13,6 +13,8 @@ prompt:
 
     - <{'|'}DELAY:1{'|'}> (延迟 1 秒)
     - <{'|'}DELAY:3{'|'}> (延迟 3 秒)
+    - ACT motion cue: "close_eyes"（短暂闭上双眼）
+    - ACT motion cue: "open_eyes"（睁开双眼）
 
     最后，做任何你想做的事！
 toaster:

@@ -115,7 +115,61 @@ const { ssmlEnabled, activeSpeechProvider, activeSpeechModel, activeSpeechVoice,
 const activeCardId = computed(() => activeCard.value?.name ?? 'default')
 const speechRuntimeStore = useSpeechRuntimeStore()
 
-const { currentMotion } = storeToRefs(useLive2d())
+const { currentMotion, modelParameters } = storeToRefs(live2dStore)
+
+let eyeReopenTimer: ReturnType<typeof setTimeout> | null = null
+
+function cancelEyeReopenTimer() {
+  if (eyeReopenTimer) {
+    clearTimeout(eyeReopenTimer)
+    eyeReopenTimer = null
+  }
+}
+
+function normalizeMotionCue(value: string) {
+  return value.trim().toLowerCase().replace(/[\s-]+/g, '_')
+}
+
+function parseActPayload(special: string): Record<string, unknown> | null {
+  const match = /<\|ACT\s*(?::\s*)?(\{[\s\S]*\})\|>/i.exec(special)
+  if (!match)
+    return null
+
+  try {
+    return JSON.parse(match[1]) as Record<string, unknown>
+  }
+  catch {
+    return null
+  }
+}
+
+function applyLive2dMotionCueFromSpecial(special: string) {
+  if (stageModelRenderer.value !== 'live2d')
+    return
+
+  const payload = parseActPayload(special)
+  if (!payload || typeof payload.motion !== 'string')
+    return
+
+  const cue = normalizeMotionCue(payload.motion)
+  if (cue === 'close_eyes' || cue === 'eyes_closed' || cue === 'blink') {
+    cancelEyeReopenTimer()
+    modelParameters.value.leftEyeOpen = 0
+    modelParameters.value.rightEyeOpen = 0
+
+    // Keep the close-eyes cue visible even when streaming chunks are fast.
+    eyeReopenTimer = setTimeout(() => {
+      modelParameters.value.leftEyeOpen = 1
+      modelParameters.value.rightEyeOpen = 1
+      eyeReopenTimer = null
+    }, 1800)
+  }
+  else if (cue === 'open_eyes' || cue === 'eyes_open') {
+    cancelEyeReopenTimer()
+    modelParameters.value.leftEyeOpen = 1
+    modelParameters.value.rightEyeOpen = 1
+  }
+}
 
 const emotionsQueue = createQueue<EmotionPayload>({
   handlers: [
@@ -149,6 +203,7 @@ delaysQueue.onHandlerEvent('delay', (delay) => {
 
 // Play special token: delay or emotion
 function playSpecialToken(special: string) {
+  applyLive2dMotionCueFromSpecial(special)
   delaysQueue.enqueue(special)
   emotionMessageContentQueue.enqueue(special)
 }
@@ -548,6 +603,7 @@ function readRenderTargetRegionAtClientPoint(clientX: number, clientY: number, r
 }
 
 onUnmounted(() => {
+  cancelEyeReopenTimer()
   resetLive2dLipSync()
   chatHookCleanups.forEach(dispose => dispose?.())
   viewUpdateCleanups.forEach(dispose => dispose?.())

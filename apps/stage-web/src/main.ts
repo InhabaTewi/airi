@@ -35,6 +35,7 @@ function seedDefaultChatConfiguration() {
   const model = import.meta.env.VITE_DEFAULT_CHAT_MODEL
   const apiKey = import.meta.env.VITE_DEFAULT_CHAT_API_KEY
   const baseUrl = import.meta.env.VITE_DEFAULT_CHAT_BASE_URL
+  const forceDefaultChatConfig = isEnvTruthy(import.meta.env.VITE_FORCE_DEFAULT_CHAT_CONFIGURATION)
 
   if (!provider || !model)
     return
@@ -47,13 +48,13 @@ function seedDefaultChatConfiguration() {
   }
 
   // Seed active provider & model (VueUse string serializer stores raw strings, no JSON.stringify)
-  if (!localStorage.getItem('settings/consciousness/active-provider'))
+  if (forceDefaultChatConfig || !localStorage.getItem('settings/consciousness/active-provider'))
     localStorage.setItem('settings/consciousness/active-provider', provider)
-  if (!localStorage.getItem('settings/consciousness/active-model'))
+  if (forceDefaultChatConfig || !localStorage.getItem('settings/consciousness/active-model'))
     localStorage.setItem('settings/consciousness/active-model', model)
 
   // Seed provider credentials
-  if (!localStorage.getItem('settings/credentials/providers')) {
+  if (forceDefaultChatConfig || !localStorage.getItem('settings/credentials/providers')) {
     const credentials: Record<string, Record<string, string>> = {}
     credentials[provider] = {}
     if (apiKey)
@@ -64,7 +65,7 @@ function seedDefaultChatConfiguration() {
   }
 
   // Seed provider added state
-  if (!localStorage.getItem('settings/providers/added')) {
+  if (forceDefaultChatConfig || !localStorage.getItem('settings/providers/added')) {
     const added: Record<string, boolean> = {}
     added[provider] = true
     localStorage.setItem('settings/providers/added', JSON.stringify(added))

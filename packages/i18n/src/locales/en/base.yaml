@@ -52,6 +52,8 @@ prompt:
 
     - <{'|'}DELAY:1{'|'}> (Delay for 1 second)
     - <{'|'}DELAY:3{'|'}> (Delay for 3 seconds)
+    - ACT motion cue: "close_eyes" (close both eyes briefly)
+    - ACT motion cue: "open_eyes" (open both eyes)
 
     And the last, do what ever you want!
 toaster:

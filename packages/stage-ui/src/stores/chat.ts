@@ -65,6 +65,40 @@ export const useChatOrchestratorStore = defineStore('chat-orchestrator', () => {
   const pendingQueuedSends = ref<QueuedSend[]>([])
   const hooks = createChatHooks()
 
+  function getPreferredLanguage() {
+    return localStorage.getItem('settings/language') || navigator.language || 'en'
+  }
+
+  function buildLanguageDirective() {
+    const language = getPreferredLanguage().toLowerCase()
+
+    const languageLabel = (() => {
+      if (language.startsWith('zh-hans') || language === 'zh-cn')
+        return 'Simplified Chinese'
+      if (language.startsWith('zh-hant') || language === 'zh-tw' || language === 'zh-hk')
+        return 'Traditional Chinese'
+      if (language.startsWith('ja'))
+        return 'Japanese'
+      if (language.startsWith('ko'))
+        return 'Korean'
+      if (language.startsWith('fr'))
+        return 'French'
+      if (language.startsWith('es'))
+        return 'Spanish'
+      if (language.startsWith('ru'))
+        return 'Russian'
+      if (language.startsWith('vi'))
+        return 'Vietnamese'
+      return 'English'
+    })()
+
+    return `[Language Preference]\nDefault reply language: ${languageLabel}. Follow this language by default. If the user explicitly asks for another language in the current request, follow the user's request.`
+  }
+
+  function isChineseLanguagePreferred() {
+    return getPreferredLanguage().toLowerCase().startsWith('zh')
+  }
+
   const sendQueue = createQueue<QueuedSend>({
     handlers: [
       async ({ data }) => {
@@ -260,10 +294,33 @@ export const useChatOrchestratorStore = defineStore('chat-orchestrator', () => {
         return rawMessage
       })
 
+      const languageDirective = buildLanguageDirective()
+      const firstMessage = newMessages[0]
+      if (firstMessage?.role === 'system') {
+        const firstContent = typeof firstMessage.content === 'string'
+          ? firstMessage.content
+          : JSON.stringify(firstMessage.content)
+
+        if (!firstContent.includes('[Language Preference]')) {
+          firstMessage.content = `${firstContent}\n\n${languageDirective}`
+        }
+      }
+      else {
+        newMessages.unshift({
+          role: 'system',
+          content: languageDirective,
+        })
+      }
+
       const contextsSnapshot = chatContext.getContextsSnapshot()
       if (Object.keys(contextsSnapshot).length > 0) {
         const system = newMessages.slice(0, 1)
         const afterSystem = newMessages.slice(1, newMessages.length)
+        const preferredChinese = isChineseLanguagePreferred()
+        const contextHeader = preferredChinese
+          ? '以下是从其他模块检索或按需更新的上下文信息，你可以把它们作为聊天上下文，或用于下一步行动、工具调用等参考：\n'
+          : 'These are the contextual information retrieved or on-demand updated from other modules, you may use them as context for chat, or reference of the next action, tool call, etc.:\n'
+        const modulePrefix = preferredChinese ? '模块' : 'Module'
 
         newMessages = [
           ...system,
@@ -272,9 +329,9 @@ export const useChatOrchestratorStore = defineStore('chat-orchestrator', () => {
             content: [
               {
                 type: 'text',
-                text: ''
-                  + 'These are the contextual information retrieved or on-demand updated from other modules, you may use them as context for chat, or reference of the next action, tool call, etc.:\n'
-                  + `${Object.entries(contextsSnapshot).map(([key, value]) => `Module ${key}: ${JSON.stringify(value)}`).join('\n')}\n`,
+                text: `${
+                  contextHeader
+                }${Object.entries(contextsSnapshot).map(([key, value]) => `${modulePrefix} ${key}: ${JSON.stringify(value)}`).join('\n')}\n`,
               },
             ],
           },

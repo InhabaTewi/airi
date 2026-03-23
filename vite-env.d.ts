@@ -9,6 +9,7 @@ interface ImportMetaEnv {
   readonly VITE_DEFAULT_CHAT_MODEL?: string
   readonly VITE_DEFAULT_CHAT_API_KEY?: string
   readonly VITE_DEFAULT_CHAT_BASE_URL?: string
+  readonly VITE_FORCE_DEFAULT_CHAT_CONFIGURATION?: string
 }
 
 interface ImportMeta {
